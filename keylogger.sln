@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.539
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "keylogger", "keylogger\keylogger.csproj", "{96B93A04-A756-4D2C-B65D-49E6A5D3AE05}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{96B93A04-A756-4D2C-B65D-49E6A5D3AE05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96B93A04-A756-4D2C-B65D-49E6A5D3AE05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96B93A04-A756-4D2C-B65D-49E6A5D3AE05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96B93A04-A756-4D2C-B65D-49E6A5D3AE05}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {735FF32F-9BD3-4EE7-9F30-CC4051647C46}
+	EndGlobalSection
+EndGlobal
