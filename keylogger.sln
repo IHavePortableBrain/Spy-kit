@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.539
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "keylogger", "keylogger\keylogger.csproj", "{96B93A04-A756-4D2C-B65D-49E6A5D3AE05}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "keylogger\Server.csproj", "{96B93A04-A756-4D2C-B65D-49E6A5D3AE05}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "client", "client\client.csproj", "{C86C9C17-B9CF-4DEF-86A4-EB8C5A58E520}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "client\Client.csproj", "{C86C9C17-B9CF-4DEF-86A4-EB8C5A58E520}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "constantsLib", "constantsLib\constantsLib.csproj", "{61EFF613-C5EF-4971-AB77-AEB1AF729D21}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstantsLib", "constantsLib\ConstantsLib.csproj", "{61EFF613-C5EF-4971-AB77-AEB1AF729D21}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

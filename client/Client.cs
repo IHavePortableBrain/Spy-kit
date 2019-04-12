@@ -8,8 +8,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.IO;
-using constantsLib;
+using ConstantsLib;
 
+//TODO
+//1) when sending load reqeust server must send confirmation that there were no errors otherwise client will interpret error reply as valid file 
 namespace Client
 {
     class Program
@@ -57,7 +59,10 @@ namespace Client
                     // reply file recieve
                     if (cmd == "screen" || cmd == "log" || cmd.IndexOf("load") == 0)
                     {
-                        ReceiveFile(clientSocket);
+                        if (GetAcknowlegment(clientSocket) == Constants.ACK_OK)
+                            ReceiveFile(clientSocket);
+                        else
+                            ThrowRecievedExceprion(clientSocket);
                     }
                     else
                     {
@@ -70,34 +75,59 @@ namespace Client
                 }
                 catch (Exception ex)
                 {
+                    if (ex is SocketException)
+                        throw;
                     Console.WriteLine(ex.Message);
                 }
             }
             Console.WriteLine("Programm closes...\n");
         }
 
-        public static void ReceiveFile(Socket sender)
+        public static void ReceiveFile(Socket client)
         {
             byte[] clientData = new byte[Constants.BUFSIZ];
 
-            int receivedBytesLen = sender.Receive(clientData);
+            int receivedBytesLen = client.Receive(clientData);
             int fileNameLen = BitConverter.ToInt32(clientData, 0);
-            string fileName = Encoding.ASCII.GetString(clientData, sizeof(int), fileNameLen);
+            string fileName = Encoding.UTF8.GetString(clientData, sizeof(int), fileNameLen);
             int fileContentLen = BitConverter.ToInt32(clientData, sizeof(int) + fileNameLen);
 
             clientData = new byte[fileContentLen];
 
             Console.WriteLine("File {0} recieve starts.", fileName);
+            if (true) //some conditions when further data getting is soficient
+            {
+                SendAcknowledgement(Constants.ACK_OK, client);
+                BinaryWriter bWriter = new BinaryWriter(File.Open(fileName, FileMode.Create));
+                if (fileContentLen > 0)
+                {
+                    receivedBytesLen = client.Receive(clientData);
+                    if (fileContentLen != receivedBytesLen)
+                        throw new Exception("Miss file content");
+                    bWriter.Write(clientData, 0, receivedBytesLen);
+                }
+                Console.WriteLine("File received and saved to {0}", Path.GetDirectoryName(Application.ExecutablePath) + @"\" + fileName);
+                bWriter.Close();
+            }
+        }
 
-            receivedBytesLen = sender.Receive(clientData);
-            if (fileContentLen != receivedBytesLen)
-                throw new Exception("Miss file content");
-            BinaryWriter bWriter = new BinaryWriter(File.Open(fileName, FileMode.Create));
-            bWriter.Write(clientData, 0, receivedBytesLen);
+        public static void SendAcknowledgement(int ACK, Socket socket)
+        {
+            socket.Send(BitConverter.GetBytes(ACK));
+        }
 
-            Console.WriteLine("File received and saved to {0}", Path.GetDirectoryName(Application.ExecutablePath) + @"\" + fileName);
+        public static int GetAcknowlegment(Socket socket)
+        {
+            byte[] buf = new byte[sizeof(int)];
+            socket.Receive(buf, sizeof(int), SocketFlags.None);
+            return BitConverter.ToInt32(buf, 0);
+        }
 
-            bWriter.Close();
+        public static void ThrowRecievedExceprion(Socket client)
+        {
+            byte[] buf = new byte[Constants.BUFSIZ];
+            int bytesRec = client.Receive(buf, Constants.BUFSIZ, SocketFlags.None);
+            throw new Exception(Encoding.UTF8.GetString(buf, 0, bytesRec));
         }
     }
 }

