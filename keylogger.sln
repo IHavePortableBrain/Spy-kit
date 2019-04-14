@@ -9,6 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstantsLib", "constantsLib\ConstantsLib.csproj", "{61EFF613-C5EF-4971-AB77-AEB1AF729D21}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetOps", "NetOps\NetOps.csproj", "{8CA0DD70-299A-4748-A469-7F5E967F62FF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Library", "Library", "{13D1F86B-307F-4A7C-9CA5-EB4F582BC140}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cryptography", "Criptography\Cryptography.csproj", "{BA60CB64-C348-4D31-89C4-D60429CDB0CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +33,14 @@ Global
 		{61EFF613-C5EF-4971-AB77-AEB1AF729D21}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61EFF613-C5EF-4971-AB77-AEB1AF729D21}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61EFF613-C5EF-4971-AB77-AEB1AF729D21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CA0DD70-299A-4748-A469-7F5E967F62FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CA0DD70-299A-4748-A469-7F5E967F62FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CA0DD70-299A-4748-A469-7F5E967F62FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CA0DD70-299A-4748-A469-7F5E967F62FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA60CB64-C348-4D31-89C4-D60429CDB0CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA60CB64-C348-4D31-89C4-D60429CDB0CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA60CB64-C348-4D31-89C4-D60429CDB0CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA60CB64-C348-4D31-89C4-D60429CDB0CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

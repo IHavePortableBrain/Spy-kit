@@ -1,24 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using ConstantsLib;
+using NetLib;
+using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Forms;
+using System.Text;
+using Cryptography;
 using System.IO;
-using ConstantsLib;
 
 //TODO
-//1) when sending load reqeust server must send confirmation that there were no errors otherwise client will interpret error reply as valid file 
+//1) when sending load reqeust server must send confirmation that there were no errors otherwise client will interpret error reply as valid file
 namespace Client
 {
-    class Program
+    internal class Program
     {
-        
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             try
             {
@@ -34,7 +29,7 @@ namespace Client
             Console.ReadLine();
         }
 
-        static void SendMessageUntilQuit(string serverIpStr)
+        private static void SendMessageUntilQuit(string serverIpStr)
         {
             //IPAddress clientIP = Dns.GetHostEntry(host).AddressList[0];
             IPEndPoint serverIpEndPoint = new IPEndPoint(IPAddress.Parse(serverIpStr), Constants.ListenPort);
@@ -46,7 +41,8 @@ namespace Client
             clientSocket.Connect(serverIpEndPoint);
             bool isConnectionEnd = false;
 
-            while (!isConnectionEnd) {
+            while (!isConnectionEnd)
+            {
                 try
                 {
                     Console.Write("Enter cmd: ");
@@ -59,10 +55,13 @@ namespace Client
                     // reply file recieve
                     if (cmd == "screen" || cmd == "log" || cmd.IndexOf("load") == 0)
                     {
-                        if (GetAcknowlegment(clientSocket) == Constants.ACK_OK)
-                            ReceiveFile(clientSocket);
+                        if (NetOps.GetAcknowlegment(clientSocket) == Constants.ACK_OK)
+                        {
+                            ReceiveAndPrepareFile(clientSocket,out string receivedPreparedFileName);
+                            Console.WriteLine("Decrypted file: {0}", Environment.CurrentDirectory + @"\" + receivedPreparedFileName);
+                        }
                         else
-                            ThrowRecievedExceprion(clientSocket);
+                            NetOps.ThrowRecievedException(clientSocket);
                     }
                     else
                     {
@@ -80,54 +79,16 @@ namespace Client
                     Console.WriteLine(ex.Message);
                 }
             }
-            Console.WriteLine("Programm closes...\n");
         }
 
-        public static void ReceiveFile(Socket client)
+        private static void ReceiveAndPrepareFile(Socket receiver, out string resultFileName)
         {
-            byte[] clientData = new byte[Constants.BUFSIZ];
-
-            int receivedBytesLen = client.Receive(clientData);
-            int fileNameLen = BitConverter.ToInt32(clientData, 0);
-            string fileName = Encoding.UTF8.GetString(clientData, sizeof(int), fileNameLen);
-            int fileContentLen = BitConverter.ToInt32(clientData, sizeof(int) + fileNameLen);
-
-            clientData = new byte[fileContentLen];
-
-            Console.WriteLine("File {0} recieve starts.", fileName);
-            if (true) //some conditions when further data getting is soficient
-            {
-                SendAcknowledgement(Constants.ACK_OK, client);
-                BinaryWriter bWriter = new BinaryWriter(File.Open(fileName, FileMode.Create));
-                if (fileContentLen > 0)
-                {
-                    receivedBytesLen = client.Receive(clientData);
-                    if (fileContentLen != receivedBytesLen)
-                        throw new Exception("Miss file content");
-                    bWriter.Write(clientData, 0, receivedBytesLen);
-                }
-                Console.WriteLine("File received and saved to {0}", Path.GetDirectoryName(Application.ExecutablePath) + @"\" + fileName);
-                bWriter.Close();
-            }
-        }
-
-        public static void SendAcknowledgement(int ACK, Socket socket)
-        {
-            socket.Send(BitConverter.GetBytes(ACK));
-        }
-
-        public static int GetAcknowlegment(Socket socket)
-        {
-            byte[] buf = new byte[sizeof(int)];
-            socket.Receive(buf, sizeof(int), SocketFlags.None);
-            return BitConverter.ToInt32(buf, 0);
-        }
-
-        public static void ThrowRecievedExceprion(Socket client)
-        {
-            byte[] buf = new byte[Constants.BUFSIZ];
-            int bytesRec = client.Receive(buf, Constants.BUFSIZ, SocketFlags.None);
-            throw new Exception(Encoding.UTF8.GetString(buf, 0, bytesRec));
+            NetOps.ReceiveFile(receiver,out string cipherFileName);
+            StringBuilder stringBuilder = new StringBuilder(cipherFileName);
+            stringBuilder.Replace(Constants.EncryptExtension, String.Empty);
+            resultFileName = stringBuilder.ToString();
+            CryptOps.Decrypt(cipherFileName, resultFileName, Constants.CryptoKey);
+            //File.Delete(cipherFileName + Environment.CurrentDirectory);
         }
     }
 }

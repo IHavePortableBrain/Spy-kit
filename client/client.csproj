@@ -36,8 +36,16 @@
     <ApplicationIcon>ds5cinstaller5cam.icon.ico0.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="constantsLib">
-      <HintPath>..\constantsLib.dll</HintPath>
+    <Reference Include="constantsLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Library\constantsLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Criptography">
+      <HintPath>..\Library\Criptography.dll</HintPath>
+    </Reference>
+    <Reference Include="NetOps, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Library\NetOps.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

